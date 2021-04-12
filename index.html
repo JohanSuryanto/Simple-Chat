@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+      #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+      #input:focus { outline: none; }
+      #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages > li { padding: 0.5rem 1rem; }
+
+      #messages > li.otherChat { background: #efefef; }
+      #messages > li.otherChat { text-align: left; }
+
+      #messages > li.selfChat { background: #09C4F6; }
+      #messages > li.selfChat { text-align: right;  }
+
+      #messages > li.registUser { background: #42FF33; }
+      #messages > li.registUser { text-align: center; }
+
+      #messages > li.endChat { background: #F70E23; }
+      #messages > li.endChat { text-align: center; }
+    </style>
+  </head>
+  <body>
+
+    <input type="button" id="registerButton" onclick="registerUser()" value="Register" />
+    <input type="hidden" id="disconnectButton" onclick="disconnectUser()" value="End Chat" />
+    <input type="hidden" id="username" />
+
+    <ul id="messages"></ul>
+
+    <form id="form" action="">
+      <input id="input" autocomplete="off" /><button>Send</button>
+    </form>
+  </body>
+  <script src="/socket.io/socket.io.js"></script>
+
+
+<script>
+  var socket = io();
+  var messages = document.getElementById('messages');
+  var form = document.getElementById('form');
+  var input = document.getElementById('input');
+  var username = document.getElementById("username");
+  
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (input.value) {
+      socket.emit('chat message', username.innerText , input.value);
+      input.value = '';
+    }
+  });
+
+  socket.on("chat message", function(usernames, msg) {
+      var item = document.createElement("li");
+      item.textContent = usernames + " : " + msg;
+      if(usernames == username.innerText){
+        item.className = "selfChat";
+      }
+      else{
+        item.className = "otherChat";
+      }
+      messages.appendChild(item);
+      window.scrollTo(0,document.body.scrollHeight);
+  });
+
+  socket.on("registUser", function(msg){
+    var item = document.createElement("li");
+    item.textContent = msg + " join the chat!";
+    item.className = "registUser";
+    messages.appendChild(item);
+    window.scrollTo(0,document.body.scrollHeight);
+  });
+
+  socket.on("disconnectUser", function(msg){
+    var item = document.createElement("li");
+    if(msg == null){msg = username.innerText}
+    item.textContent = msg + " left the chat!";
+    item.className = "endChat";
+    messages.appendChild(item);
+    window.scrollTo(0,document.body.scrollHeight);
+  });
+
+  socket.on("disconnect", function(msg){
+    console.log("from client side");
+  })
+
+  var nameCollection = ["John","Ricky","Robert","Yuki","Nada"]
+
+  function registerUser(){
+    var randomNumber = Math.floor(Math.random()*nameCollection.length);
+    var person = prompt("Please enter your name:", nameCollection[randomNumber]);
+    
+    if(person != null){
+        socket.emit("registUser", person)
+    document.getElementById("username").innerText = person;
+    
+    var reg = document.getElementById("registerButton");
+    reg.setAttribute("type", "hidden");
+
+    var end = document.getElementById("disconnectButton");
+    end.setAttribute("type", "button");
+    }
+
+  }
+
+  function disconnectUser(){
+    socket.emit("disconnectUser", username.innerText);
+    document.getElementById("username").innerText = "Anonymous"
+
+    var reg = document.getElementById("registerButton");
+    reg.setAttribute("type", "button");
+
+    var end = document.getElementById("disconnectButton");
+    end.setAttribute("type", "hidden");
+
+  }
+
+</script>
+</html>
